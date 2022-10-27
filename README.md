@@ -20,3 +20,11 @@ Activate the virtual environment.
 ```
 conda activate nl_vocoder       #nl_vocoder is the name of the virtual environment.
 ```
+
+## Data Preparation
+Copy the wavfiles to the data folder.
+Divide the total wavfiles into **wavs** and **wav_test** folders for train and test respectively.
+```
+python prep_data.py
+```
+
