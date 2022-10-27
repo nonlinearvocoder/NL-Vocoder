@@ -34,7 +34,16 @@ python prep_data.py
 CUDA_VISIBLE_DEVICES=0 python train.py
 ```
 
-The trained model is stored in the weights folder.
+The trained model is stored in the **weights** folder.
 
 
 ## Synthesis
+
+Test data is in the **data/wav_test** folder.
+```
+python analysis_synthesis.py --checkpoint weights/weights-0278.h5 --input data/wav_test/S0001_0018.wav
+```
+
+The synthesized samples are available at **synthesized** folder.
+
+
