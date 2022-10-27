@@ -1,9 +1,9 @@
 # NL-Vocoder Vocoder
 
-Synthesized samples are available at https://nlvocoder.github.io/nlvocoder.html
+Synthesized samples are available at https://nlvocoder.github.io/nlvocoder.html <br />
 &nbsp;
 &nbsp;
-
+<br />
 This repository contains code for the implementation of the Non-linear vocoder.
 
 Follow the steps below to install the dependenies, train the non-linear vocoder, and synthesize from the trained vocoder.
