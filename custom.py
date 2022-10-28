@@ -51,14 +51,15 @@ def preemphasis(wav, coef=0.97):
 
 
 class dg_nlvocoder(Sequence):
-    def __init__(self, speech_file, exc_file, batch_size=8):
+    def __init__(self, speech_file, exc_file, batch_size=8, frame_length=400):
         self.batch_size = batch_size
         self.nfft = 1024
         self.sp_size = int(self.nfft/2) + 1
         self.mfcc_size = 60
         self.seg_length = 32000
         self.frame_shift = 80
-        self.frame_length = 400
+        self.frame_length = frame_length
+        self.zero_pad = int(self.frame_length - self.frame_shift)
         self.fs, self.speech = wavfile.read(speech_file)
         self.speech = np.append(self.speech, np.zeros([(self.seg_length-(len(self.speech)%self.seg_length))]))
         self.fs, self.exct = wavfile.read(exc_file)
@@ -68,7 +69,7 @@ class dg_nlvocoder(Sequence):
         #self.speech = self.speech[:-960000]
         self.n_frames = int(self.seg_length/self.frame_shift)
         self.L = self.speech.shape[0]
-        self.X = np.zeros((self.batch_size, self.seg_length+320), dtype=np.float32)
+        self.X = np.zeros((self.batch_size, self.seg_length+self.zero_pad), dtype=np.float32)
         self.spch = np.zeros((self.batch_size, self.seg_length), dtype=np.float32)
         self.E = np.zeros((self.batch_size, self.n_frames, self.frame_length), dtype=np.float32)
         self.MFCC = np.zeros((self.batch_size, self.n_frames, self.mfcc_size), dtype=np.float32)
@@ -99,62 +100,8 @@ class dg_nlvocoder(Sequence):
             self.spch[i] = self.speech[left:right]*1./(2 ** 15 - 1)
             exc = self.exct[left:right]*1./(2 ** 15)
             self.E[i] = frame_exct(exc, self.frame_length, self.frame_shift)
-            self.X[i] = np.append(self.spch[i], np.zeros(320))
-        M = mfcc(self.spch, frame_length=400, frame_step=80, fft_length=1024, num_mels=80, num_mfccs=60)
-        return [M, self.E], [self.X, self.X, self.X, self.X] 
-
-
-class dg_nlvocoder_256(Sequence):
-    def __init__(self, speech_file, exc_file, batch_size=8):
-        self.batch_size = batch_size
-        self.nfft = 1024
-        self.sp_size = int(self.nfft/2) + 1
-        self.mfcc_size = 60
-        self.seg_length = 32000
-        self.frame_shift = 80
-        self.frame_length = 256
-        self.fs, self.speech = wavfile.read(speech_file)
-        self.speech = np.append(self.speech, np.zeros([(self.seg_length-(len(self.speech)%self.seg_length))]))
-        self.fs, self.exct = wavfile.read(exc_file)
-        self.exct = np.append(self.exct, np.zeros([(self.seg_length-(len(self.exct)%self.seg_length))])).astype(np.float32)
-        self.speech = self.speech[:len(self.exct)]
-        #self.exct = self.exct[:-960000]
-        #self.speech = self.speech[:-960000]
-        self.n_frames = int(self.seg_length/self.frame_shift)
-        self.L = self.speech.shape[0]
-        self.X = np.zeros((self.batch_size, self.seg_length+176), dtype=np.float32)
-        self.spch = np.zeros((self.batch_size, self.seg_length), dtype=np.float32)
-        self.E = np.zeros((self.batch_size, self.n_frames, self.frame_length), dtype=np.float32)
-        self.MFCC = np.zeros((self.batch_size, self.n_frames, self.mfcc_size), dtype=np.float32)
-        self.idx = np.arange(0, self.L - 2*self.seg_length, self.seg_length)
-        self.B = len(self.idx) // self.batch_size       
-        self.shuffle=True
-        self.on_epoch_end()
-
-    def __len__(self):
-        return self.B
-    
-    def on_epoch_end(self):
-        if self.shuffle:
-            seed = np.random.randint(0, self.L)
-            self.idx = np.concatenate([
-                np.flip(np.arange(seed, 0, -self.seg_length)),
-                np.arange(seed+self.seg_length, self.L, self.seg_length)
-                ])
-            self.idx = self.idx[:-1]
-            random.shuffle(self.idx)
-
-    def __getitem__(self, index):
-       
-        for i in range(self.batch_size):
-            k = index*self.batch_size + i
-            left = self.idx[k]
-            right = left+self.seg_length
-            self.spch[i] = self.speech[left:right]*1./(2 ** 15 - 1)
-            exc = self.exct[left:right]*1./(2 ** 15)
-            self.E[i] = frame_exct(exc, self.frame_length, self.frame_shift)
-            self.X[i] = np.append(self.spch[i], np.zeros(176))
-        M = mfcc(self.spch, frame_length=256, frame_step=80, fft_length=1024, num_mels=80, num_mfccs=60)
+            self.X[i] = np.append(self.spch[i], np.zeros(self.zero_pad))
+        M = mfcc(self.spch, frame_length=self.frame_length, frame_step=self.frame_shift, fft_length=self.nfft, num_mels=80, num_mfccs=self.mfcc_size)
         return [M, self.E], [self.X, self.X, self.X, self.X] 
 
 
